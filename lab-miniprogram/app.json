@@ -1,0 +1,66 @@
+{
+  "pages": [
+    "pages/login/index",
+    "pages/register/index",
+    "pages/home/index",
+    "pages/equipment/index",
+    "pages/reservations/index",
+    "pages/repairs/index",
+    "pages/profile/index",
+    "pages/apply/index",
+    "pages/report/index",
+    "pages/records/index",
+    "pages/manage/index",
+    "pages/stats/index",
+    "pages/recover/index",
+    "pages/reservation-detail/index",
+    "pages/assistant/index"
+  ],
+  "window": {
+    "navigationBarTitleText": "实验室预约",
+    "navigationBarBackgroundColor": "#f5f7fa",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#f5f7fa"
+  },
+  "tabBar": {
+    "color": "#64748b",
+    "selectedColor": "#087f70",
+    "list": [
+      {
+        "pagePath": "pages/home/index",
+        "text": "首页",
+        "iconPath": "assets/tabs/home.png",
+        "selectedIconPath": "assets/tabs/home-student.png"
+      },
+      {
+        "pagePath": "pages/equipment/index",
+        "text": "设备",
+        "iconPath": "assets/tabs/equipment.png",
+        "selectedIconPath": "assets/tabs/equipment-student.png"
+      },
+      {
+        "pagePath": "pages/reservations/index",
+        "text": "预约",
+        "iconPath": "assets/tabs/reservations.png",
+        "selectedIconPath": "assets/tabs/reservations-student.png"
+      },
+      {
+        "pagePath": "pages/repairs/index",
+        "text": "报修",
+        "iconPath": "assets/tabs/repairs.png",
+        "selectedIconPath": "assets/tabs/repairs-student.png"
+      },
+      {
+        "pagePath": "pages/profile/index",
+        "text": "我的",
+        "iconPath": "assets/tabs/profile.png",
+        "selectedIconPath": "assets/tabs/profile-student.png"
+      }
+    ],
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

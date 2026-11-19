@@ -1,0 +1,10 @@
+<view class="page">
+ <view class="page-heading"><view class="title">实验室操作助手</view><view class="hint">连续咨询使用规则、整理报修描述，也可以说“我要预约设备”前往办理。</view></view>
+ <view class="shortcut-grid"><button class="shortcut" wx:for="{{shortcuts}}" wx:key="code" data-code="{{item.code}}" bindtap="go"><view class="name">{{item.label}} →</view><view class="hint">{{item.hint}}</view></button></view>
+ <view class="notice">{{enabled === true ? '问题和最近3轮问答将发送到云端模型，请勿输入密码、验证码或个人敏感信息。' : enabled === false ? '文字模型尚未启用，快捷操作与使用指南仍可使用。' : '模型状态未确认，快捷操作与使用指南仍可使用。'}}</view>
+ <view class="card"><button wx:for="{{suggestions}}" wx:key="*this" data-index="{{index}}" bindtap="quick" disabled="{{busy}}">{{item}}</button></view>
+ <view wx:if="{{!messages.length}}" class="card hint">可以先描述设备的故障，再追问“帮我缩短成一句话”。</view>
+ <view class="card" wx:for="{{messages}}" wx:key="id"><view class="name">{{item.question}}</view><view class="hint">{{item.modeText}}</view><text user-select class="detail">{{item.answer}}</text><view class="answer-actions"><button wx:if="{{item.answer && item.mode !== 'error' && !item.loading}}" data-id="{{item.id}}" bindtap="copy">复制回答</button><button wx:if="{{index === messages.length - 1 && item.retryable}}" bindtap="retry" disabled="{{busy}}">重试这条问题</button><button wx:for="{{item.actions}}" wx:for-item="action" wx:key="code" data-code="{{action.code}}" bindtap="go">{{action.label}} →</button></view></view>
+ <view wx:if="{{pending}}" class="card navigation-notice"><view class="name">{{pending.seconds}} 秒后前往：{{pending.label}}</view><view class="hint">{{pending.hint}}</view><button class="primary" data-code="{{pending.code}}" bindtap="go">立即前往</button><button bindtap="cancelNavigation">留在这里</button></view>
+ <view class="card"><textarea value="{{question}}" bindinput="input" maxlength="1000" placeholder="描述故障，或继续追问：再简短一点" disabled="{{busy}}"/><view wx:if="{{error}}" class="error">{{error}}</view><button class="primary" bindtap="ask" loading="{{busy}}" disabled="{{busy}}">发送问题</button><button bindtap="clear">开始新对话</button><view class="hint">连续追问携带最近3轮成功问答，当前页最多显示10轮。开始新对话或离开页面会清除记录。导航请求3秒后跳转，可取消；预约与工单仍由你确认提交。</view></view>
+</view>

@@ -1,0 +1,17 @@
+<view class="page {{manager ? 'theme-admin' : 'theme-student'}}">
+  <view class="page-heading"><view class="eyebrow">{{manager ? 'EQUIPMENT / 设备台账' : 'DISCOVER / 实验探索'}}</view><view class="title">{{manager ? '设备状态，一目了然' : '找到你的下一场实验'}}</view><view class="muted">{{manager ? '掌握管理范围内的设备信息与维修状态' : '先选设备，再查看时段与提交预约'}}</view></view>
+  <view class="card search-card"><view class="search-line"><input value="{{name}}" data-field="name" bindinput="input" placeholder="搜索设备名称" confirm-type="search" bindconfirm="search"/><button class="primary" bindtap="search" loading="{{busy}}">搜索</button></view></view>
+  <scroll-view class="filter-scroll" scroll-x><view class="filter-tabs"><button wx:for="{{statuses}}" wx:key="*this" class="filter-chip {{statusIndex === index ? 'selected' : ''}}" bindtap="chip" data-index="{{index}}">{{item}}</button></view></scroll-view>
+  <view class="list-caption"><text>{{manager ? '设备列表' : '实验设备'}}</text><text>{{total === null ? (busy ? '正在加载' : '暂未获取') : '共 ' + total + ' 台设备'}}</text></view>
+  <view wx:if="{{error}}" class="error">{{error}}<button bindtap="search">重新加载</button></view>
+  <view wx:if="{{busy && !rows.length}}" class="loading-panel"><view class="skeleton wide"></view><view class="skeleton"></view><text class="hint">正在查找设备…</text></view>
+  <view wx:for="{{rows}}" wx:key="id" class="card equipment-card {{manager ? 'compact-equipment' : ''}}">
+    <view class="equipment-top"><view class="equipment-icon"><image src="{{manager ? '/assets/tabs/equipment-admin.png' : '/assets/tabs/equipment-student.png'}}"/></view><view class="equipment-identity"><view class="name">{{item.name}}</view><view class="muted small">{{item.code || '未设置编号'}}</view></view><text class="tag status-{{item.status}}">{{item.statusText}}</text></view>
+    <view class="device-meta"><view><text class="meta-label">设备型号</text><text>{{item.model || '未填写'}}</text></view><view><text class="meta-label">所属实验室</text><text>{{item.labName || ('实验室 #' + item.labId)}}</text></view></view>
+    <view wx:if="{{item.description}}" class="device-description">{{item.description}}</view>
+    <view class="row"><button wx:if="{{!manager && (item.status === 0 || item.status === 1)}}" class="primary" bindtap="apply" data-id="{{item.id}}">查看时段与预约</button><button wx:if="{{item.status !== 3}}" class="secondary" bindtap="report" data-id="{{item.id}}">故障报修</button></view>
+    <view wx:if="{{!manager && item.status === 1}}" class="hint">已存在预约，其他空闲时段仍可申请。</view>
+  </view>
+  <view wx:if="{{!busy && !rows.length && !error}}" class="empty card"><view class="empty-symbol">⌕</view>没有找到符合条件的设备<view class="hint">试试其他名称或切换设备状态。</view></view>
+  <button wx:if="{{hasMore && rows.length}}" class="load-more" bindtap="more" loading="{{busy}}" disabled="{{busy}}">{{busy ? '正在加载…' : '加载更多设备'}}</button><view wx:if="{{!hasMore && rows.length}}" class="page-footer">已显示全部设备</view>
+</view>

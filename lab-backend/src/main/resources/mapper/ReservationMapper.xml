@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lab.mapper.ReservationMapper">
+
+    <!-- 左闭右开区间[start,end)。前一条的结束=后一条的开始，不冲突。
+         待审核也占位，防止多个待审预约竞争同一时段。审批时必须排除当前预约。
+         XML自定义SQL必须显式写deleted=0，不能依赖BaseMapper的逻辑删除条件。 -->
+    <!-- 跨日预约也计入当天；相邻时段不冲突。不投影学生ID、用途等私有字段。 -->
+    <select id="selectOccupiedSlots" resultType="com.lab.vo.ReservationSlotVO">
+        SELECT start_time, end_time, status FROM reservation
+        WHERE equipment_id = #{equipmentId} AND deleted = 0 AND status IN (0, 1)
+          AND start_time &lt; #{endTime} AND end_time &gt; #{startTime}
+        ORDER BY start_time, end_time, id LIMIT 201
+    </select>
+
+    <select id="countTimeConflicts" resultType="long">
+        SELECT COUNT(*) FROM reservation
+        WHERE equipment_id = #{equipmentId}
+          AND deleted = 0
+          AND status IN (0, 1)
+          AND start_time &lt; #{endTime}
+          AND end_time &gt; #{startTime}
+        <if test="excludeId != null">AND id != #{excludeId}</if>
+    </select>
+
+    <select id="selectReservationPage" resultType="com.lab.entity.Reservation">
+        SELECT r.* FROM reservation r
+        JOIN equipment e ON e.id = r.equipment_id
+        JOIN lab l ON l.id = e.lab_id
+        WHERE r.deleted = 0
+        <if test="studentId != null">AND r.student_id = #{studentId}</if>
+        <if test="managerId != null">AND l.admin_id = #{managerId} AND l.deleted = 0</if>
+        <if test="query.equipmentId != null">AND r.equipment_id = #{query.equipmentId}</if>
+        <if test="query.labId != null">AND e.lab_id = #{query.labId}</if>
+        <if test="query.status != null">AND r.status = #{query.status}</if>
+        ORDER BY r.apply_time DESC, r.id DESC
+    </select>
+
+    <!-- 保留已逻辑删除用户的行锁能力，使后台仍可处理其历史预约；前台另行鉴权。 -->
+    <select id="lockStudentRow" resultType="long">
+        SELECT id FROM `user` WHERE id = #{studentId} FOR UPDATE
+    </select>
+
+    <!-- 停用实验室前的当前读；待审核和已通过的未结束预约都必须保护。
+         不拦截已拒绝、已取消、爽约、已结束及已逻辑删除的预约。 -->
+    <select id="selectActiveReservationIdByLab" resultType="long">
+        SELECT r.id FROM reservation r
+        JOIN equipment e ON e.id = r.equipment_id
+        WHERE e.lab_id = #{labId} AND e.deleted = 0
+          AND r.deleted = 0 AND r.status IN (0, 1) AND r.end_time &gt; #{now}
+        LIMIT 1 FOR UPDATE
+    </select>
+
+    <!-- 扫描到达预约开始时间且仍未审核的候选；实际写入须持锁后重查。 -->
+    <select id="selectDuePendingExpiryIds" resultType="long">
+        SELECT id FROM reservation
+        WHERE deleted = 0 AND status = 0 AND start_time &lt;= #{now} AND id &gt; #{afterId}
+        ORDER BY id LIMIT #{limit}
+    </select>
+
+    <!-- 从预约开始时间计算30分钟，不是从审核通过时间计算。 -->
+    <select id="selectDueNoShowIds" resultType="long">
+        SELECT id FROM reservation
+        WHERE deleted = 0 AND status = 1 AND sign_in_time IS NULL
+          AND start_time &lt;= #{deadline} AND id &gt; #{afterId}
+        ORDER BY id LIMIT #{limit}
+    </select>
+
+    <select id="selectFinishedEquipmentIds" resultType="long">
+        SELECT e.id FROM equipment e
+        WHERE e.deleted = 0 AND e.id &gt; #{afterId}
+          AND (
+            (e.status = 1
+             AND EXISTS (SELECT 1 FROM reservation r WHERE r.equipment_id = e.id
+                         AND r.deleted = 0 AND r.status = 1 AND r.end_time &lt;= #{now})
+             AND NOT EXISTS (SELECT 1 FROM reservation r WHERE r.equipment_id = e.id
+                             AND r.deleted = 0 AND r.status = 1 AND r.end_time &gt; #{now}))
+            OR EXISTS (SELECT 1 FROM usage_log u JOIN reservation r ON r.id = u.reservation_id
+                       WHERE r.equipment_id = e.id AND r.deleted = 0 AND r.status = 1
+                         AND u.deleted = 0 AND u.end_time IS NULL AND r.end_time &lt;= #{now})
+          )
+        ORDER BY e.id LIMIT #{limit}
+    </select>
+
+    <!-- 当前没有人工签退接口，到预约结束时按约定结束时间关闭使用记录。 -->
+    <update id="closeFinishedUsage">
+        UPDATE usage_log
+        SET end_time = (SELECT r.end_time FROM reservation r WHERE r.id = usage_log.reservation_id),
+            update_time = #{now}
+        WHERE deleted = 0 AND end_time IS NULL AND reservation_id IN (
+            SELECT r.id FROM reservation r WHERE r.equipment_id = #{equipmentId}
+              AND r.deleted = 0 AND r.status = 1 AND r.sign_in_time IS NOT NULL
+              AND r.end_time &lt;= #{now}
+        )
+    </update>
+</mapper>

@@ -1,0 +1,40 @@
+{
+  "name": "lab-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "实验室设备预约与故障报修管理系统前端",
+  "engines": {
+    "node": "^22.12.0 || ^24.0.0 || >=26.0.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "lint": "eslint . --max-warnings=0",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write src/resources src/components/resources src/composables/useResourceTable.js src/composables/useEquipmentExcel.js src/composables/useOperationLogs.js src/views/ResourceListView.vue src/views/OperationLogView.vue src/api/equipment.js src/api/operation-log.js src/utils/request.js src/utils/download.js src/utils/navigation.js src/router/index.js src/layout/components/Sidebar.vue tests/equipment-download.spec.js tests/equipment-excel.spec.js tests/resource-table.spec.js tests/operation-log.spec.js tests/audit-navigation.spec.js tests/helpers/composable.js eslint.config.js src/components/equipment src/components/workspace src/components/workflow src/components/WorkflowDialog.vue src/components/ReservationSchedule.vue src/composables/useWorkflowDialog.js src/composables/useReservationSchedule.js src/composables/useWorkspace.js src/api/workspace.js src/views/EquipmentView.vue src/views/HomeView.vue tests/planning-state.spec.js tests/workspace-state.spec.js tests/workspace.spec.js",
+    "format:check": "prettier --check src/resources src/components/resources src/composables/useResourceTable.js src/composables/useEquipmentExcel.js src/composables/useOperationLogs.js src/views/ResourceListView.vue src/views/OperationLogView.vue src/api/equipment.js src/api/operation-log.js src/utils/request.js src/utils/download.js src/utils/navigation.js src/router/index.js src/layout/components/Sidebar.vue tests/equipment-download.spec.js tests/equipment-excel.spec.js tests/resource-table.spec.js tests/operation-log.spec.js tests/audit-navigation.spec.js tests/helpers/composable.js eslint.config.js src/components/equipment src/components/workspace src/components/workflow src/components/WorkflowDialog.vue src/components/ReservationSchedule.vue src/composables/useWorkflowDialog.js src/composables/useReservationSchedule.js src/composables/useWorkspace.js src/api/workspace.js src/views/EquipmentView.vue src/views/HomeView.vue tests/planning-state.spec.js tests/workspace-state.spec.js tests/workspace.spec.js"
+  },
+  "dependencies": {
+    "@element-plus/icons-vue": "2.3.2",
+    "axios": "1.20.0",
+    "echarts": "6.1.0",
+    "element-plus": "2.14.5",
+    "pinia": "3.0.4",
+    "vue": "3.5.43",
+    "vue-router": "4.6.4"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@vitejs/plugin-vue": "6.0.9",
+    "eslint": "^10.13.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-vue": "^10.11.1",
+    "globals": "^16.5.0",
+    "prettier": "^3.9.10",
+    "vite": "8.3.5",
+    "vitest": "5.0.5"
+  }
+}

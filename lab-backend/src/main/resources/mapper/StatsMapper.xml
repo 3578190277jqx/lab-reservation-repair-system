@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lab.mapper.StatsMapper">
+    <!-- 所有入口均显式排除逻辑删除，管理范围只取服务端 Token，禁止由客户端提供。 -->
+    <sql id="labScope">
+        l.deleted = 0
+        <if test="scope.managerId != null">AND l.admin_id = #{scope.managerId}</if>
+        <if test="scope.labId != null">AND l.id = #{scope.labId}</if>
+    </sql>
+
+    <select id="selectLabCount" resultType="long">
+        SELECT COUNT(*) FROM lab l WHERE <include refid="labScope"/>
+    </select>
+
+    <select id="selectEquipmentCounts" resultType="com.lab.dto.StatsAggregateRows$EquipmentCounts">
+        SELECT COUNT(*) AS total,
+          COALESCE(SUM(CASE WHEN e.status = 0 THEN 1 ELSE 0 END), 0) AS available,
+          COALESCE(SUM(CASE WHEN e.status = 1 THEN 1 ELSE 0 END), 0) AS reserved,
+          COALESCE(SUM(CASE WHEN e.status = 2 THEN 1 ELSE 0 END), 0) AS repairing,
+          COALESCE(SUM(CASE WHEN e.status = 3 THEN 1 ELSE 0 END), 0) AS scrapped
+        FROM equipment e JOIN lab l ON l.id = e.lab_id
+        WHERE e.deleted = 0 AND <include refid="labScope"/>
+    </select>
+
+    <sql id="reservationCounts">
+        COUNT(*) AS total,
+        COALESCE(SUM(CASE WHEN r.status = 0 THEN 1 ELSE 0 END), 0) AS pending,
+        COALESCE(SUM(CASE WHEN r.status = 1 THEN 1 ELSE 0 END), 0) AS approved,
+        COALESCE(SUM(CASE WHEN r.status = 2 THEN 1 ELSE 0 END), 0) AS rejected,
+        COALESCE(SUM(CASE WHEN r.status = 3 THEN 1 ELSE 0 END), 0) AS cancelled,
+        COALESCE(SUM(CASE WHEN r.status = 4 THEN 1 ELSE 0 END), 0) AS no_show,
+        COALESCE(SUM(CASE WHEN r.status = 5 THEN 1 ELSE 0 END), 0) AS expired
+    </sql>
+
+    <sql id="reservationSource">
+        FROM reservation r JOIN equipment e ON e.id = r.equipment_id
+        JOIN lab l ON l.id = e.lab_id
+        WHERE r.deleted = 0 AND e.deleted = 0 AND <include refid="labScope"/>
+          AND r.apply_time &gt;= #{scope.fromTime} AND r.apply_time &lt; #{scope.toTime}
+    </sql>
+
+    <select id="selectReservationCounts" resultType="com.lab.dto.StatsAggregateRows$ReservationCounts">
+        SELECT <include refid="reservationCounts"/> <include refid="reservationSource"/>
+    </select>
+
+    <select id="selectReservationTrend" resultType="com.lab.dto.StatsAggregateRows$TrendRow">
+        SELECT CAST(r.apply_time AS DATE) AS stat_date, <include refid="reservationCounts"/>
+        <include refid="reservationSource"/>
+        GROUP BY CAST(r.apply_time AS DATE) ORDER BY stat_date
+    </select>
+
+    <select id="selectRepairCounts" resultType="com.lab.dto.StatsAggregateRows$RepairCounts">
+        SELECT COALESCE(SUM(CASE WHEN r.status = 0 THEN 1 ELSE 0 END), 0) AS reported,
+          COALESCE(SUM(CASE WHEN r.status = 1 THEN 1 ELSE 0 END), 0) AS accepted,
+          COALESCE(SUM(CASE WHEN r.status = 2 THEN 1 ELSE 0 END), 0) AS repairing,
+          COALESCE(SUM(CASE WHEN r.status = 3 THEN 1 ELSE 0 END), 0) AS completed
+        FROM repair_order r JOIN equipment e ON e.id = r.equipment_id
+        JOIN lab l ON l.id = e.lab_id
+        WHERE r.deleted = 0 AND e.deleted = 0 AND <include refid="labScope"/>
+          AND r.create_time &gt;= #{scope.fromTime} AND r.create_time &lt; #{scope.toTime}
+    </select>
+
+    <!--
+        实际使用秒数：截取日志与查询窗口的交集，再限制到设备创建时间、预约结束时间。
+        即使预约因故障被取消，已产生的实际使用仍然有效，不按预约当前状态过滤。
+        左连接保留使用量为0的设备；不连接工单表，避免一对多连接导致使用时长重复累计。
+        分母为窗口内设备存在的日历秒数，不推测不存在的营业时间和历史停机时段。
+    -->
+    <sql id="equipmentUsageRows">
+        SELECT e.id AS equipment_id, e.name AS equipment_name, e.lab_id, l.name AS lab_name,
+          COALESCE(SUM(CASE WHEN u.id IS NULL THEN 0 ELSE
+            GREATEST(0, TIMESTAMPDIFF(SECOND,
+              GREATEST(u.start_time, #{scope.fromTime}, COALESCE(e.create_time, #{scope.fromTime})),
+              LEAST(COALESCE(u.end_time, #{scope.effectiveEndTime}), r.end_time, #{scope.effectiveEndTime})
+            )) END), 0) AS used_seconds,
+          GREATEST(0, TIMESTAMPDIFF(SECOND,
+            GREATEST(#{scope.fromTime}, COALESCE(e.create_time, #{scope.fromTime})),
+            #{scope.effectiveEndTime})) AS capacity_seconds
+        FROM equipment e JOIN lab l ON l.id = e.lab_id
+        LEFT JOIN reservation r ON r.equipment_id = e.id AND r.deleted = 0
+          AND r.end_time &gt; #{scope.fromTime}
+        LEFT JOIN usage_log u ON u.reservation_id = r.id AND u.deleted = 0
+          AND u.start_time &lt; #{scope.effectiveEndTime}
+          AND (u.end_time IS NULL OR u.end_time &gt; #{scope.fromTime})
+        WHERE e.deleted = 0 AND <include refid="labScope"/>
+        GROUP BY e.id, e.name, e.lab_id, l.name, e.create_time
+    </sql>
+
+    <select id="selectUsageTotals" resultType="com.lab.dto.StatsAggregateRows$UsageTotals">
+        SELECT COALESCE(SUM(q.used_seconds), 0) AS used_seconds,
+               COALESCE(SUM(q.capacity_seconds), 0) AS capacity_seconds
+        FROM (<include refid="equipmentUsageRows"/>) q
+    </select>
+
+    <select id="selectEquipmentUsage" resultType="com.lab.dto.StatsAggregateRows$EquipmentUsageRow">
+        SELECT q.* FROM (<include refid="equipmentUsageRows"/>) q
+        ORDER BY CASE WHEN q.capacity_seconds &gt; 0
+          THEN LEAST(1.0, q.used_seconds * 1.0 / q.capacity_seconds) ELSE 0 END DESC,
+          q.used_seconds DESC, q.equipment_id ASC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 各子查询先按实验室聚合后连接，避免设备数×预约数×工单数的行数膨胀。 -->
+    <select id="selectLabRanking" resultType="com.lab.dto.StatsAggregateRows$LabRankingRow">
+        SELECT l.id AS lab_id, l.name AS lab_name,
+          COALESCE(us.equipment_count, 0) AS equipment_count,
+          COALESCE(rc.reservation_count, 0) AS reservation_count,
+          COALESCE(us.used_seconds, 0) AS used_seconds,
+          COALESCE(us.capacity_seconds, 0) AS capacity_seconds
+        FROM lab l
+        LEFT JOIN (
+          SELECT e.lab_id, COUNT(*) AS reservation_count
+          <include refid="reservationSource"/> GROUP BY e.lab_id
+        ) rc ON rc.lab_id = l.id
+        LEFT JOIN (
+          SELECT q.lab_id, COUNT(*) AS equipment_count,
+            SUM(q.used_seconds) AS used_seconds, SUM(q.capacity_seconds) AS capacity_seconds
+          FROM (<include refid="equipmentUsageRows"/>) q GROUP BY q.lab_id
+        ) us ON us.lab_id = l.id
+        WHERE <include refid="labScope"/>
+        ORDER BY reservation_count DESC, l.id ASC LIMIT #{limit}
+    </select>
+</mapper>

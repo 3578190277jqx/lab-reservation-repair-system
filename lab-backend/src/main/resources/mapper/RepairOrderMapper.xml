@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lab.mapper.RepairOrderMapper">
+    <!-- 自定义SQL必须显式排除逻辑删除；管理范围只由服务端传入。 -->
+    <select id="selectRepairPage" resultType="com.lab.entity.RepairOrder">
+        SELECT r.* FROM repair_order r
+        JOIN equipment e ON e.id = r.equipment_id
+        JOIN lab l ON l.id = e.lab_id
+        WHERE r.deleted = 0
+        <if test="reporterId != null">AND r.reporter_id = #{reporterId}</if>
+        <if test="managerId != null">AND l.admin_id = #{managerId} AND l.deleted = 0</if>
+        <if test="query.equipmentId != null">AND r.equipment_id = #{query.equipmentId}</if>
+        <if test="query.labId != null">AND e.lab_id = #{query.labId}</if>
+        <if test="query.status != null">AND r.status = #{query.status}</if>
+        ORDER BY r.create_time DESC, r.id DESC
+    </select>
+
+    <select id="countReadableImage" resultType="long">
+        SELECT COUNT(*) FROM repair_order r
+        JOIN equipment e ON e.id = r.equipment_id
+        JOIN lab l ON l.id = e.lab_id
+        WHERE r.deleted = 0 AND r.image_url = #{imageUrl}
+          AND (r.reporter_id = #{reporterId}
+            <if test="managerId != null">OR (l.admin_id = #{managerId} AND l.deleted = 0)</if>
+          )
+    </select>
+
+    <!-- 必须先关闭使用记录，再将预约改为已取消；两个操作与受理工单处于同一事务。 -->
+    <update id="closeInterruptedUsage">
+        UPDATE usage_log SET end_time = #{now}, update_time = #{now}, remark = '设备故障，使用提前结束'
+        WHERE deleted = 0 AND end_time IS NULL AND reservation_id IN (
+            SELECT id FROM reservation WHERE equipment_id = #{equipmentId}
+              AND deleted = 0 AND status IN (0, 1) AND sign_in_time IS NOT NULL AND end_time &gt; #{now}
+        )
+    </update>
+
+    <update id="cancelAffectedReservations">
+        UPDATE reservation SET status = 3, cancel_time = #{now}, cancel_reason = #{reason}, update_time = #{now}
+        WHERE equipment_id = #{equipmentId} AND deleted = 0 AND status IN (0, 1) AND end_time &gt; #{now}
+    </update>
+</mapper>

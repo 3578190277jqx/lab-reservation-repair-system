@@ -1,0 +1,13 @@
+<view class="page"><view class="card"><view class="title">申请预约</view><view class="name">{{equipment.name || '读取设备信息中'}}</view><view class="hint">以下时间均为北京时间；时段冲突和黑名单由服务器校验。</view><text class="label">开始时间</text><view class="row"><picker mode="date" value="{{startDate}}" data-field="startDate" bindchange="input"><view class="picker">{{startDate}}</view></picker><picker mode="time" value="{{startClock}}" data-field="startClock" bindchange="input"><view class="picker">{{startClock}}</view></picker></view><text class="label">结束时间</text><view class="row"><picker mode="date" value="{{endDate}}" data-field="endDate" bindchange="input"><view class="picker">{{endDate}}</view></picker><picker mode="time" value="{{endClock}}" data-field="endClock" bindchange="input"><view class="picker">{{endClock}}</view></picker></view><view class="schedule-panel">
+<view class="name">设备占用时段</view>
+<view class="row"><picker mode="date" value="{{scheduleDate}}" bindchange="chooseScheduleDate"><view class="picker">{{scheduleDate}}</view></picker><button size="mini" bindtap="loadSchedule" loading="{{scheduleLoading}}" disabled="{{scheduleLoading}}">刷新</button></view>
+<view class="hint">待审核也占用时段。跨日申请请分别查看各日期。</view>
+<view wx:if="{{scheduleLoading}}" class="hint">正在加载占用时段…</view>
+<view wx:elif="{{scheduleError}}" class="error">{{scheduleError}}</view>
+<block wx:elif="{{schedule}}">
+<view wx:if="{{!schedule.bookable}}" class="error">{{schedule.reason}}</view>
+<view wx:for="{{schedule.slots}}" wx:key="index" class="schedule-slot"><view>{{item.startTime}}</view><view>至 {{item.endTime}}</view><view class="hint">{{item.status === 0 ? '待审核' : '已通过'}}</view></view>
+<view wx:if="{{!schedule.slots.length}}" class="hint">该日期暂无待审核或已通过预约。</view>
+<view wx:if="{{schedule.truncated}}" class="error">仅显示前200条，未显示时段不代表空闲。</view>
+</block><view class="hint">占用情况可能变化，最终以提交时检查为准。</view>
+</view><text class="label">预约用途</text><textarea data-field="purpose" bindinput="input" maxlength="500" placeholder="说明课程或实验用途"/><view wx:if="{{error}}" class="error">{{error}}</view><button wx:if="{{!equipment}}" bindtap="load">重新读取设备</button><button class="primary" bindtap="submit" disabled="{{busy || !equipment}}" loading="{{busy}}">提交申请</button></view></view>

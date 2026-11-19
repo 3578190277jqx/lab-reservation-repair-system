@@ -1,0 +1,13 @@
+.env
+.env.*
+!.env.example
+node_modules/
+target/
+dist/
+*.log
+*.db
+*.sqlite
+project.private.config.json
+.git-scan.json
+lab-miniprogram/UI-UPDATE-20261010.md
+lab-miniprogram/VALIDATION.md

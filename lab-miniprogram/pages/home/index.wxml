@@ -1,0 +1,42 @@
+<view class="page workspace {{manager ? 'theme-admin' : 'theme-student'}}">
+  <view class="welcome"><view class="eyebrow">LAB / {{manager ? 'OPERATIONS' : 'CAMPUS'}}</view><view class="welcome-name">{{displayName}}，你好</view><text class="role-pill">{{roleName}}</text></view>
+  <view class="hero home-hero">
+    <view class="eyebrow">{{manager ? '实验室移动工作台' : '让每一次实验，有序开始'}}</view>
+    <view class="title">{{manager ? '待办在手，运维有序' : '下一场探索，从这里开始'}}</view>
+    <view class="muted">{{manager ? '查看待审核预约，及时跟进设备报修。' : '发现实验设备，预约时段，随时跟进进度。'}}</view>
+    <button class="hero-action" bindtap="browse" data-kind="{{manager ? 'reservations' : 'equipment'}}" data-status="{{manager ? 0 : ''}}">{{manager ? '处理预约审核' : '发现实验设备'}} <text>→</text></button>
+    <view class="hero-orbit orbit-one"></view><view class="hero-orbit orbit-two"></view>
+  </view>
+  <view wx:if="{{manager}}" class="quick-grid">
+    <button class="quick-card" bindtap="browse" data-kind="reservations" data-status="0"><text class="quick-symbol">待审</text><text class="metric">{{reservations ? reservations.total : '—'}}</text><text class="muted">预约待审核</text></button>
+    <button class="quick-card" bindtap="browse" data-kind="repairs" data-status="0"><text class="quick-symbol warm">待办</text><text class="metric">{{repairs ? repairs.total : '—'}}</text><text class="muted">报修待受理</text></button>
+  </view>
+  <view wx:else class="quick-grid student-shortcuts">
+    <button class="quick-card" bindtap="browse" data-kind="reservations"><text class="quick-symbol">约</text><text class="shortcut-title">我的预约</text><text class="small muted">查看安排 · 到场签到</text></button>
+    <button class="quick-card" bindtap="browse" data-kind="repairs"><text class="quick-symbol warm">修</text><text class="shortcut-title">报修进度</text><text class="small muted">故障反馈 · 维修跟进</text></button>
+  </view>
+  <view wx:if="{{busy}}" class="loading-panel"><view class="skeleton wide"></view><view class="skeleton"></view><view class="hint">正在同步最新数据…</view></view>
+  <block wx:if="{{manager}}">
+    <view class="section-heading"><view><view class="section-title">设备概况</view><view class="hint">管理范围内的设备状态</view></view><button class="text-button" bindtap="stats">统计总览 →</button></view>
+    <view wx:if="{{errors.overview}}" class="error">{{errors.overview}}<button bindtap="load">重新加载</button></view>
+    <view wx:if="{{overview}}" class="card summary-strip"><view><text class="metric">{{overview.equipmentCount}}</text><text class="muted">设备总数</text></view><view><text class="metric green">{{overview.availableEquipmentCount}}</text><text class="muted">可用设备</text></view><view><text class="metric amber">{{overview.repairingEquipmentCount}}</text><text class="muted">维修中</text></view></view>
+  </block>
+  <block wx:else>
+    <view class="section-heading"><view><view class="section-title">探索可用设备</view><view class="hint">选择设备后查看具体时段</view></view><button class="text-button" bindtap="browse" data-kind="equipment">全部 →</button></view>
+    <view wx:if="{{errors.equipment}}" class="error">{{errors.equipment}}<button bindtap="load">重新加载</button></view>
+    <view wx:if="{{equipment}}" class="equipment-grid">
+      <view wx:for="{{equipment.rows}}" wx:key="id" class="mini-equipment"><view class="equipment-art"><image src="/assets/tabs/equipment-student.png"/><text class="tag status-0">可用</text></view><view class="name">{{item.name}}</view><view class="muted small ellipsis">{{item.model || '型号未填写'}}</view><button class="soft-button" bindtap="apply" data-id="{{item.id}}">查看时段与预约 →</button></view>
+    </view>
+    <view wx:if="{{equipment && !equipment.rows.length}}" class="empty card">暂无可用设备<view class="hint">可以到设备页查看其他状态的设备。</view><button bindtap="browse" data-kind="equipment">查看全部设备</button></view>
+  </block>
+  <view class="section-heading"><view><view class="section-title">{{manager ? '预约审核队列' : '我的预约动态'}}</view><view class="hint">{{manager ? '待审核预约，最多展示 3 条' : '最近提交的预约，最多展示 3 条'}}</view></view><button class="text-button" bindtap="browse" data-kind="reservations" data-status="{{manager ? 0 : ''}}">全部 →</button></view>
+  <view wx:if="{{errors.reservations}}" class="error">{{errors.reservations}}<button bindtap="load">重新加载</button></view>
+  <view wx:if="{{reservations}}" class="card feed">
+    <view wx:for="{{reservations.rows}}" wx:key="id" class="feed-item"><view class="feed-dot status-{{item.status}}"></view><view class="feed-main"><view class="item-heading"><view class="name">{{item.equipmentName || ('设备 #' + item.equipmentId)}}</view><text class="tag status-{{item.status}}">{{item.statusText}}</text></view><view class="muted small">{{item.startTime}} 开始</view><view class="muted small">{{item.purpose || '未填写用途'}}</view><button wx:if="{{manager}}" class="soft-button" bindtap="handle" data-kind="reservations" data-id="{{item.id}}">审核预约 →</button></view></view>
+    <view wx:if="{{!reservations.rows.length}}" class="empty"><view class="empty-symbol">✓</view>{{manager ? '当前没有待审核预约' : '还没有预约记录'}}<view class="hint">{{manager ? '下拉刷新，查看最新申请。' : '找到想使用的设备，提交你的第一份申请。'}}</view><button wx:if="{{!manager}}" bindtap="browse" data-kind="equipment">去预约设备</button></view>
+  </view>
+  <view class="section-heading"><view><view class="section-title">{{manager ? '报修待受理' : '我的报修动态'}}</view><view class="hint">{{manager ? '待受理工单，最多展示 3 条' : '最近提交的报修，最多展示 3 条'}}</view></view><button class="text-button" bindtap="browse" data-kind="repairs" data-status="{{manager ? 0 : ''}}">全部 →</button></view>
+  <view wx:if="{{errors.repairs}}" class="error">{{errors.repairs}}<button bindtap="load">重新加载</button></view>
+  <view wx:if="{{repairs}}" class="card feed"><view wx:for="{{repairs.rows}}" wx:key="id" class="feed-item"><view class="feed-dot warm"></view><view class="feed-main"><view class="item-heading"><view class="name">{{item.equipmentName || ('设备 #' + item.equipmentId)}}</view><text class="tag repair-status-{{item.status}}">{{item.statusText}}</text></view><view class="muted small">{{item.description}}</view><view class="hint">{{item.createTime}}</view><button wx:if="{{manager}}" class="soft-button" bindtap="handle" data-kind="repairs" data-id="{{item.id}}">受理报修 →</button></view></view><view wx:if="{{!repairs.rows.length}}" class="empty"><view class="empty-symbol">✓</view>{{manager ? '当前没有待受理报修' : '暂无报修记录'}}<view class="hint">{{manager ? '设备问题及时处理，实验安排更安心。' : '遇到设备故障，可从设备页提交报修。'}}</view></view></view>
+  <view class="page-footer">实验室预约与故障报修 · {{manager ? '移动运维' : '校园服务'}}</view>
+</view>
