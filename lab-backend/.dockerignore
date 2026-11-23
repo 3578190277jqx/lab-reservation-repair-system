@@ -1,0 +1,18 @@
+# Whitelist build inputs; local secrets and existing artifacts never enter context.
+**
+!pom.xml
+!src/
+!src/**
+!docker/
+!docker/application.yml
+!docker/PasswordHashTool.java
+src/main/resources/application.yml
+src/main/resources/application.yaml
+src/main/resources/application-*.yml
+src/main/resources/application-*.yaml
+src/main/resources/application*.properties
+**/.env*
+**/*.log
+**/target/
+**/.git/
+**/.idea/

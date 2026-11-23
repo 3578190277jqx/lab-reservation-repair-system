@@ -1,0 +1,16 @@
+{
+  "services": {
+    "backend": {
+      "build": {
+        "context": "./deploy/runtime/backend",
+        "dockerfile": "Dockerfile"
+      }
+    },
+    "frontend": {
+      "build": {
+        "context": "./deploy/runtime/frontend",
+        "dockerfile": "Dockerfile"
+      }
+    }
+  }
+}

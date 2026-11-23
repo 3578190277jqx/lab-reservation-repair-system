@@ -1,6 +1,6 @@
 <script setup>
 import { assistantModes } from '@/utils/assistant-conversation'
-import AiAssistantPending from '@/components/leibox/ai-generating/AiImageGeneration.vue'
+import AssistantPending from './AssistantPending.vue'
 defineProps({ messages: { type: Array, required: true }, canRetry: Boolean, copiedId: Number })
 defineEmits(['go', 'retry', 'copy'])
 </script>
@@ -10,7 +10,7 @@ defineEmits(['go', 'retry', 'copy'])
     <article v-for="(item, index) in messages" :key="item.id" class="answer-card" :aria-busy="!!item.loading">
       <strong class="answer-question">{{ item.question }}</strong>
       <p class="answer-mode">{{ item.loading ? '正在回答…' : assistantModes[item.mode] || '参考回复' }}</p>
-      <AiAssistantPending v-if="item.loading" />
+      <AssistantPending v-if="item.loading" />
       <p v-if="item.answer" class="answer-text" :class="{ 'answer-error': item.mode === 'error' }">{{ item.answer }}</p>
       <div class="answer-actions">
         <el-button v-if="item.answer && item.mode !== 'error' && !item.loading" @click="$emit('copy', item.id)">{{ copiedId === item.id ? '已复制' : '复制回答' }}</el-button>

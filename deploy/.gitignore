@@ -1,0 +1,4 @@
+*.local.*
+*.dump.sql
+backups/
+.validation/

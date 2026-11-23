@@ -1,0 +1,22 @@
+# 本地依赖和编译产物由镜像构建阶段重新生成。
+node_modules
+dist
+coverage
+.vite
+.git
+.idea
+.vscode
+tests
+*.log
+*.zip
+*.tar
+*.gz
+*.md
+
+# 所有本地配置文件均不进入 Docker 构建上下文。
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
